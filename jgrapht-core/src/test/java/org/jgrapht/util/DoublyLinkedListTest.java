@@ -1173,7 +1173,6 @@ public class DoublyLinkedListTest
         assertSameContent(list, expectedList);
         assertThat(sourceList.size(), is(equalTo(0)));
         assertTrue(sourceList.isEmpty());
-
     }
 
     // test iterator

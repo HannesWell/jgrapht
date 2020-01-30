@@ -56,7 +56,7 @@ import java.util.function.*;
  * @author Timofey Chudakov
  * @author Hannes Wellmann
  */
-public class DoublyLinkedList<E>
+public class DoublyLinkedList<E> // TODO: extend doc about both node types
     extends
     AbstractSequentialList<E>
     implements
@@ -65,6 +65,21 @@ public class DoublyLinkedList<E>
     /** The first element of the list, {@code null} if this list is empty. */
     private ListNodeImpl<E> head = null;
     private int size;
+    private final boolean containmentCheckEnforced;
+
+    private final Function<E, ? extends ListNode<E>> nodeFactory;
+
+    public DoublyLinkedList()
+    {
+        this(true);
+    }
+
+    public DoublyLinkedList(boolean enforeContainmentCheck)
+    {
+        this.containmentCheckEnforced = enforeContainmentCheck;
+        nodeFactory = enforeContainmentCheck ? ContainmentCheckingListNode::new
+            : ContainmentPresumingListNode::new;
+    }
 
     private ListNodeImpl<E> tail()
     {
@@ -124,12 +139,7 @@ public class DoublyLinkedList<E>
      */
     private void addListNode(ListNodeImpl<E> node)
     { // call this before any modification of this list is done
-        if (node.list != null) {
-            String list = (node.list == this) ? "this" : "other";
-            throw new IllegalArgumentException(
-                "Node <" + node + "> already contained in " + list + " list");
-        }
-        node.list = this;
+        node.addToList(this);
         size++;
         modCount++;
     }
@@ -142,11 +152,8 @@ public class DoublyLinkedList<E>
     private void moveAllListNodes(DoublyLinkedList<E> list)
     { // call this before any modification of this list is done
 
-        for (ListNodeIteratorImpl it = list.new ListNodeIteratorImpl(0); it.hasNext();) {
-            ListNodeImpl<E> node = it.nextNode();
-            assert node.list == list;
-            node.list = this;
-        }
+        list.head.moveAllToList(this);
+
         size += list.size;
         list.size = 0;
         modCount++;
@@ -167,9 +174,8 @@ public class DoublyLinkedList<E>
      */
     private boolean removeListNode(ListNodeImpl<E> node)
     { // call this before any modification of this list is done
-        if (node.list == this) {
+        if (node.removeFromList(this)) {
 
-            node.list = null;
             node.next = null;
             node.prev = null;
 
@@ -216,6 +222,9 @@ public class DoublyLinkedList<E>
     /** Insert non null {@code list} before node at {@code index} into the list. */
     private void linkListIntoThisBefore(int index, DoublyLinkedList<E> list)
     {
+        if (list.isEmpty()) {
+            return; // the following code relies on that list is not empty
+        }
         int previousSize = size;
         moveAllListNodes(list);
 
@@ -344,9 +353,8 @@ public class DoublyLinkedList<E>
         ListNodeImpl<E> successorImpl = (ListNodeImpl<E>) successor;
         ListNodeImpl<E> nodeImpl = (ListNodeImpl<E>) node;
 
-        if (successorImpl.list != this) {
-            throw new IllegalArgumentException("Node <" + successorImpl + "> not in this list");
-        }
+        successorImpl.requireInList(this);
+
         linkBefore(nodeImpl, successorImpl);
         if (head == successorImpl) {
             head = nodeImpl;
@@ -451,7 +459,7 @@ public class DoublyLinkedList<E>
      */
     public int indexOfNode(ListNode<E> node)
     {
-        if (!containsNode(node)) {
+        if (containmentCheckEnforced && !containsNode(node)) {
             return -1;
         }
         ListNodeImpl<E> current = head;
@@ -477,7 +485,8 @@ public class DoublyLinkedList<E>
      */
     public boolean containsNode(ListNode<E> node)
     {
-        return ((ListNodeImpl<E>) node).list == this;
+        return ((ListNodeImpl<E>) node).containedInList(this);
+        // FIXME: add note about runtime behavior if containment is not enforced
     }
 
     /**
@@ -577,7 +586,7 @@ public class DoublyLinkedList<E>
      */
     public ListNode<E> addElementFirst(E element)
     {
-        ListNode<E> node = new ListNodeImpl<>(element);
+        ListNode<E> node = nodeFactory.apply(element);
         addNode(0, node);
         return node;
     }
@@ -595,7 +604,7 @@ public class DoublyLinkedList<E>
      */
     public ListNode<E> addElementLast(E element)
     {
-        ListNode<E> node = new ListNodeImpl<>(element);
+        ListNode<E> node = nodeFactory.apply(element);
         addNode(size, node);
         return node;
     }
@@ -612,7 +621,7 @@ public class DoublyLinkedList<E>
      */
     public ListNode<E> addElementBeforeNode(ListNode<E> successor, E element)
     {
-        ListNode<E> node = new ListNodeImpl<>(element);
+        ListNode<E> node = nodeFactory.apply(element);
         addNodeBefore(node, successor);
         return node;
     }
@@ -1375,12 +1384,11 @@ public class DoublyLinkedList<E>
      * The default {@link ListNode} implementation that enables checks and enforcement of a single
      * container list policy.
      */
-    private static class ListNodeImpl<V>
+    private abstract static class ListNodeImpl<V>
         implements
         ListNode<V>
     {
         private final V value;
-        private DoublyLinkedList<V> list = null;
         private ListNodeImpl<V> next = null;
         private ListNodeImpl<V> prev = null;
 
@@ -1395,25 +1403,170 @@ public class DoublyLinkedList<E>
         }
 
         /**
-         * {@inheritDoc}
-         */
-        @Override
-        public String toString()
-        {
-            if (list == null) {
-                return " - " + value + " - "; // not in a list
-            } else {
-                return prev.value + " -> " + value + " -> " + next.value;
-            }
-        }
-
-        /**
-         * {@inheritDoc}
+         * Returns the value this list node stores
+         *
+         * @return the value this list node stores
          */
         @Override
         public V getValue()
         {
             return value;
+        }
+
+        protected abstract void addToList(DoublyLinkedList<V> list);
+
+        protected abstract boolean removeFromList(DoublyLinkedList<V> list);
+
+        protected abstract void moveAllToList(DoublyLinkedList<V> list);
+
+        protected abstract void requireInList(DoublyLinkedList<V> list);
+
+        protected abstract boolean containedInList(DoublyLinkedList<V> list);
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String toString()
+        {
+            if (prev == null || next == null) { // if only node, then prev and next refer to this
+                return " - " + value + " - "; // not in a list
+            } else {
+                return prev.value + " -> " + value + " -> " + next.value;
+            }
+        }
+    }
+
+    // TODO: add test cases (node added to list with other policy)
+    // test other policy and test move an empty list.
+
+    private static class ContainmentCheckingListNode<V>
+        extends
+        ListNodeImpl<V>
+    {
+        private DoublyLinkedList<V> list = null;
+
+        ContainmentCheckingListNode(V value)
+        {
+            super(value);
+        }
+
+        private void ensureContainmentCheckEnforedPolicy(DoublyLinkedList<V> list)
+        {
+            if (!list.containmentCheckEnforced) {
+                throw new IllegalArgumentException(
+                    "Wrong node type for containment presuming list");
+            }
+        }
+
+        @Override
+        protected void addToList(DoublyLinkedList<V> list)
+        {
+            ensureContainmentCheckEnforedPolicy(list);
+
+            if (this.list != null) {
+                String listName = (this.list == list) ? "this" : "other";
+                throw new IllegalArgumentException(
+                    "Node <" + this + "> already contained in " + listName + " list");
+            }
+            this.list = list;
+        }
+
+        @Override
+        protected boolean removeFromList(DoublyLinkedList<V> list)
+        {
+            if (this.list == list) {
+                this.list = null;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        protected void moveAllToList(DoublyLinkedList<V> target)
+        {
+            ensureContainmentCheckEnforedPolicy(target);
+
+            DoublyLinkedList<V> source = this.list;
+
+            for (NodeIterator<V> iterator = source.iterator(); iterator.hasNext();) {
+                ContainmentCheckingListNode<V> node =
+                    (ContainmentCheckingListNode<V>) iterator.nextNode();
+                assert node.list == source;
+                node.list = target;
+            }
+        }
+
+        @Override
+        protected void requireInList(DoublyLinkedList<V> list)
+        {
+            if (this.list != list) {
+                throw new IllegalArgumentException("Node <" + this + "> not in this list");
+            }
+        }
+
+        @Override
+        protected boolean containedInList(DoublyLinkedList<V> list)
+        {
+            return this.list == list;
+        }
+    }
+
+    private static class ContainmentPresumingListNode<V>
+        extends
+        ListNodeImpl<V>
+    {
+        public ContainmentPresumingListNode(V value)
+        {
+            super(value);
+        }
+
+        private void ensureContainmentCheckSkippedPolicy(DoublyLinkedList<V> list)
+        {
+            if (list.containmentCheckEnforced) {
+                throw new IllegalArgumentException("Wrong node type for containment checking list");
+            }
+        }
+
+        @Override
+        protected void addToList(DoublyLinkedList<V> list)
+        {
+            ensureContainmentCheckSkippedPolicy(list);
+            // do nothing, its the user responsibility to ensure that this node is only in list
+        }
+
+        @Override
+        protected boolean removeFromList(DoublyLinkedList<V> list)
+        {
+            ensureContainmentCheckSkippedPolicy(list);
+            // do nothing, its the user responsibility to ensure that this node is only in list
+            return true;
+        }
+
+        @Override
+        protected void moveAllToList(DoublyLinkedList<V> list)
+        {
+            ensureContainmentCheckSkippedPolicy(list);
+            // do nothing, its the user responsibility to ensure that this node is only in list
+        }
+
+        @Override
+        protected void requireInList(DoublyLinkedList<V> list)
+        {
+            ensureContainmentCheckSkippedPolicy(list);
+            // do nothing, its the user responsibility to ensure that this node is only in list
+        }
+
+        @Override
+        protected boolean containedInList(DoublyLinkedList<V> list)
+        {
+            for (NodeIterator<V> iterator = list.iterator(); iterator.hasNext();) {
+                if (iterator.next() == this) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
