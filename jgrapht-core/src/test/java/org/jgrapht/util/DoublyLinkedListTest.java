@@ -1741,4 +1741,6 @@ public class DoublyLinkedListTest
         }
     }
 
+    // TODO: add tests for not checking list! maybe test them as own parameter and add some special
+    // cases where the containment is violated.
 }

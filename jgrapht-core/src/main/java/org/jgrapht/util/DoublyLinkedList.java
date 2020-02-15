@@ -48,51 +48,83 @@ import java.util.function.*;
  * </p>
  * <p>
  * This class can be used in two flavors: The first and default one ensures that each
- * {@link ListNode} is contained at most in one single {@code DoublyLinkedList}. The second variant
- * does not check the containment of a ListNode and it is up to the user to ensure that a ListNode
- * is not contained in more than one {@code List}. Which variant is used can be controlled with the
- * boolean flag in the constructor.
- * </p>
- * <p>
- * In the first variant the {@code ListNode} implementation has an additional reference to the
- * containing {@code DoublyLinkedList} that is checked or modified in the relevant situations. This
- * increases the memory occupied by this list implementation compared to {@code LinkedList} for the
- * same elements. Instances of {@code LinkedList.Node} have three references each (the element, next
- * and previous), instances of {@code DoublyLinkedList.ListNode} have four (the element, next,
- * previous and the list). In exchange for the additional required memory the runtime of the
- * {@link DoublyLinkedList#containsNode(ListNode)} method is constant.
- * </p>
- * <p>
- * The second variant
+ * {@link ListNode} is contained in at most in one single {@code DoublyLinkedList}. The second
+ * variant does not check the containment of a ListNode to reduce memory consumption and runtime of
+ * {@link #moveFrom(int, DoublyLinkedList)}. In the latter case it is up to the user to ensure that
+ * a ListNode is not contained in more than one {@code List}. Which variant is used can be
+ * controlled with the boolean flag constructor {@link #DoublyLinkedList(boolean)}.
  * </p>
  * 
  * @param <E> the list element type
  * @author Timofey Chudakov
  * @author Hannes Wellmann
  */
-public class DoublyLinkedList<E> // TODO: extend doc about both node types
+public class DoublyLinkedList<E>
     extends
     AbstractSequentialList<E>
     implements
     Deque<E>
 {
+    public enum ContainmentCheckPolicy
+    {
+        CHECK_CONTAINMENT, // TODO: better name
+        PRESUME_CONTAINMENT;
+    }
+
     /** The first element of the list, {@code null} if this list is empty. */
     private ListNodeImpl<E> head = null;
     private int size;
-    private final boolean containmentCheckEnforced;
+    private final ContainmentCheckPolicy containmentCheckPolicy;
 
     private final Function<E, ? extends ListNode<E>> nodeFactory;
 
+    /**
+     * Creates a new {@code DoublyLinkedList} that enforces its containment check.
+     * 
+     * @see #DoublyLinkedList(boolean)
+     */
     public DoublyLinkedList()
     {
-        this(true);
+        this(ContainmentCheckPolicy.CHECK_CONTAINMENT);
     }
 
-    public DoublyLinkedList(boolean enforeContainmentCheck)
+    /**
+     * Creates a new {@code DoublyLinkedList} that checks the single container policy for nodes if
+     * {@code enforeContainmentCheck} is true, else does not check it.
+     * 
+     * <p>
+     * If {@code enforeContainmentCheck} is true a {@code ListNode} implementation is used that has
+     * an additional reference to the containing {@code DoublyLinkedList}. This reference is checked
+     * or modified in the relevant situations. It increases the memory occupied by this list
+     * implementation compared to {@code LinkedList} for the same elements. Instances of
+     * {@code LinkedList.Node} have three references each (the element, next and previous),
+     * instances of {@code DoublyLinkedList.ListNode} have four (the element, next, previous and the
+     * list). In exchange for the additional required memory the runtime of
+     * {@link #containsNode(ListNode)} is constant. But because all list-references must be change
+     * the {@link #moveFrom(int, DoublyLinkedList)} and the ones based on it have linear runtime.
+     * </p>
+     * <p>
+     * If {@code enforeContainmentCheck} is false the {@code ListNode} implementation is used that
+     * does not have a reference to its containing {@code DoublyLinkedList} and only has the
+     * reference like the nodes of {@link LinkedList}. Therefore the memory consumption is the same.
+     * This variant also has the advantage of a constant time
+     * {@link #moveFrom(int, DoublyLinkedList)} implementation. On the other hand
+     * {@link #containsNode(ListNode)} becomes a linear runtime operation. The behavior is undefined
+     * if a {@code ListNode} is added to multiple lists.
+     * </p>
+     * 
+     * @param enforeContainmentCheck if true
+     */
+    public DoublyLinkedList(ContainmentCheckPolicy containmentCheckPolicy)
     {
-        this.containmentCheckEnforced = enforeContainmentCheck;
-        nodeFactory = enforeContainmentCheck ? ContainmentCheckingListNode::new
+        this.containmentCheckPolicy = Objects.requireNonNull(containmentCheckPolicy);
+        nodeFactory = checksContainment() ? ContainmentCheckingListNode::new
             : ContainmentPresumingListNode::new;
+    }
+
+    private boolean checksContainment()
+    {
+        return containmentCheckPolicy == ContainmentCheckPolicy.CHECK_CONTAINMENT;
     }
 
     private ListNodeImpl<E> tail()
@@ -473,7 +505,7 @@ public class DoublyLinkedList<E> // TODO: extend doc about both node types
      */
     public int indexOfNode(ListNode<E> node)
     {
-        if (containmentCheckEnforced && !containsNode(node)) {
+        if (checksContainment() && !containsNode(node)) {
             return -1;
         }
         ListNodeImpl<E> current = head;
@@ -490,7 +522,8 @@ public class DoublyLinkedList<E> // TODO: extend doc about both node types
     /**
      * Returns true if this {@code DoublyLinkedList} contains the specified {@link ListNode}.
      * <p>
-     * This method has constant runtime complexity O(1).
+     * This method has constant runtime complexity O(1) if this {@code DoublyLinkedList} enforces
+     * the containment check for nodes and linear runtime O(n) if this list does not check it.
      * </p>
      * 
      * @param node the node whose presence in this {@code DoublyLinkedList} is to be tested
@@ -500,7 +533,6 @@ public class DoublyLinkedList<E> // TODO: extend doc about both node types
     public boolean containsNode(ListNode<E> node)
     {
         return ((ListNodeImpl<E>) node).containedInList(this);
-        // FIXME: add note about runtime behavior if containment is not enforced
     }
 
     /**
@@ -936,6 +968,10 @@ public class DoublyLinkedList<E> // TODO: extend doc about both node types
      * them all before the node previously at the given position. All the {@code nodes} of
      * {@code movedList} are moved to this list. When this method terminates this list contains all
      * nodes of {@code movedList} and {@code movedList} is empty.
+     * <p>
+     * This method has linear runtime complexity O(n) if this {@code DoublyLinkedList} enforces the
+     * containment check for nodes and constant runtime O(1) if this list does not check it.
+     * </p>
      *
      * @param index index of the first element of {@code list} in this {@code list} after it was
      *        added
@@ -1467,7 +1503,7 @@ public class DoublyLinkedList<E> // TODO: extend doc about both node types
 
         private void ensureContainmentCheckEnforedPolicy(DoublyLinkedList<V> list)
         {
-            if (!list.containmentCheckEnforced) {
+            if (!list.checksContainment()) {
                 throw new IllegalArgumentException(
                     "Wrong node type for containment presuming list");
             }
@@ -1538,7 +1574,7 @@ public class DoublyLinkedList<E> // TODO: extend doc about both node types
 
         private void ensureContainmentCheckSkippedPolicy(DoublyLinkedList<V> list)
         {
-            if (list.containmentCheckEnforced) {
+            if (list.checksContainment()) {
                 throw new IllegalArgumentException("Wrong node type for containment checking list");
             }
         }
