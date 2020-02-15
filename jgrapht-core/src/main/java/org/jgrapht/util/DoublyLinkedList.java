@@ -44,14 +44,28 @@ import java.util.function.*;
  * </p>
  * <p>
  * This class is similar to {@link LinkedList}. The general difference is that the {@code ListNodes}
- * of this {@code List} are accessible and can be removed or added directly. To ensure the integrity
- * of the {@code List} nodes of this List have a reference to the List they belong to. This
+ * of this {@code List} are accessible and can be removed or added directly.
+ * </p>
+ * <p>
+ * This class can be used in two flavors: The first and default one ensures that each
+ * {@link ListNode} is contained at most in one single {@code DoublyLinkedList}. The second variant
+ * does not check the containment of a ListNode and it is up to the user to ensure that a ListNode
+ * is not contained in more than one {@code List}. Which variant is used can be controlled with the
+ * boolean flag in the constructor.
+ * </p>
+ * <p>
+ * In the first variant the {@code ListNode} implementation has an additional reference to the
+ * containing {@code DoublyLinkedList} that is checked or modified in the relevant situations. This
  * increases the memory occupied by this list implementation compared to {@code LinkedList} for the
  * same elements. Instances of {@code LinkedList.Node} have three references each (the element, next
  * and previous), instances of {@code DoublyLinkedList.ListNode} have four (the element, next,
- * previous and the list).
+ * previous and the list). In exchange for the additional required memory the runtime of the
+ * {@link DoublyLinkedList#containsNode(ListNode)} method is constant.
  * </p>
- *
+ * <p>
+ * The second variant
+ * </p>
+ * 
  * @param <E> the list element type
  * @author Timofey Chudakov
  * @author Hannes Wellmann
