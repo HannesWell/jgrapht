@@ -63,13 +63,15 @@ public class TwoOptHeuristicTSP<V, E>
     implements
     HamiltonianCycleImprovementAlgorithm<V, E>
 {
+    protected static final double DEFAULT_MIN_COST_IMPROVEMENT = 1e-8;
+
     private final int passes;
     private final HamiltonianCycleAlgorithm<V, E> initializer;
-    private final double minCostImprovement;
+    protected final double minCostImprovement;
 
     private Graph<V, E> graph;
-    private int n;
-    private double[][] dist;
+    protected int n;
+    protected double[][] dist;
     private Map<V, Integer> index;
     private List<V> revIndex;
 
@@ -143,7 +145,7 @@ public class TwoOptHeuristicTSP<V, E>
      */
     public TwoOptHeuristicTSP(int passes, HamiltonianCycleAlgorithm<V, E> initializer)
     {
-        this(passes, initializer, 1e-8);
+        this(passes, initializer, DEFAULT_MIN_COST_IMPROVEMENT);
     }
 
     /**
@@ -162,6 +164,13 @@ public class TwoOptHeuristicTSP<V, E>
         this.passes = passes;
         this.initializer =
             Objects.requireNonNull(initializer, "Initial solver algorithm cannot be null");
+        this.minCostImprovement = Math.abs(minCostImprovement);
+    }
+
+    TwoOptHeuristicTSP(double minCostImprovement) // for IncrementalKOptHeuristicTSP
+    {
+        this.passes = -1;
+        this.initializer = null;
         this.minCostImprovement = Math.abs(minCostImprovement);
     }
 
@@ -216,7 +225,7 @@ public class TwoOptHeuristicTSP<V, E>
      *
      * @param graph the input graph
      */
-    private void init(Graph<V, E> graph)
+    protected void init(Graph<V, E> graph)
     {
         this.graph = graph;
         this.n = graph.vertexSet().size();
@@ -258,7 +267,7 @@ public class TwoOptHeuristicTSP<V, E>
      * @param tour the input tour
      * @return a possibly improved tour
      */
-    private int[] improve(int[] tour)
+    protected int[] improve(int[] tour)
     {
         double minChange;
         while (true) {
