@@ -18,24 +18,54 @@
 package org.jgrapht.alg.tour;
 
 import org.jgrapht.*;
+import org.jgrapht.alg.interfaces.*;
 import org.jgrapht.alg.spanning.*;
 import org.jgrapht.generate.*;
 import org.jgrapht.graph.*;
 import org.jgrapht.util.*;
 import org.junit.*;
 import org.junit.experimental.categories.*;
+import org.junit.runner.*;
+import org.junit.runners.*;
+import org.junit.runners.Parameterized.*;
 
-import static org.jgrapht.alg.tour.TwoApproxMetricTSPTest.assertHamiltonian;
-import static org.junit.Assert.assertTrue;
+import java.util.*;
+import java.util.function.*;
+
+import static org.jgrapht.alg.tour.TwoApproxMetricTSPTest.*;
+import static org.junit.Assert.*;
 
 /**
- * Tests for {@link TwoOptHeuristicTSP}.
- * 
+ * Tests for {@link TwoOptHeuristicTSP} and {@link KOptHeuristicTSP} with k=2.
+ *
  * @author Dimitrios Michail
  */
 @Category(SlowTests.class)
+@RunWith(Parameterized.class)
 public class TwoOptHeuristicTSPTest
 {
+    @Parameters(name = "{0}")
+    public static List<Object[]> getAlgorithmsToTest()
+    {
+        Supplier<HamiltonianCycleAlgorithm<?, ?>> twoOptSupplier = TwoOptHeuristicTSP::new;
+        Supplier<HamiltonianCycleAlgorithm<?, ?>> k2OptSupplier = () -> new KOptHeuristicTSP<>(2);
+        return Arrays
+            .asList(
+                new Object[] { "TwoOpt", twoOptSupplier },
+                new Object[] { "kOpt with k=2", k2OptSupplier });
+    }
+
+    @Parameter(0)
+    public String caseName;
+    @Parameter(1)
+    public Supplier<HamiltonianCycleAlgorithm<?, ?>> algorithmFactory;
+
+    private <V, E> GraphPath<V, E> getTour(Graph<V, E> g)
+    {
+        @SuppressWarnings("unchecked") HamiltonianCycleAlgorithm<V, E> algorithm =
+            (HamiltonianCycleAlgorithm<V, E>) algorithmFactory.get();
+        return algorithm.getTour(g);
+    }
 
     @Test
     public void testWikiExampleSymmetric4Cities()
@@ -53,8 +83,7 @@ public class TwoOptHeuristicTSPTest
         g.setEdgeWeight(g.addEdge("B", "D"), 34d);
         g.setEdgeWeight(g.addEdge("C", "D"), 12d);
 
-        GraphPath<String, DefaultWeightedEdge> tour =
-            new TwoOptHeuristicTSP<String, DefaultWeightedEdge>().getTour(g);
+        GraphPath<String, DefaultWeightedEdge> tour = getTour(g);
         assertHamiltonian(g, tour);
     }
 
@@ -69,8 +98,7 @@ public class TwoOptHeuristicTSPTest
             CompleteGraphGenerator<Object, DefaultEdge> generator = new CompleteGraphGenerator<>(i);
             generator.generateGraph(g);
 
-            GraphPath<Object, DefaultEdge> tour =
-                new TwoOptHeuristicTSP<Object, DefaultEdge>().getTour(g);
+            GraphPath<Object, DefaultEdge> tour = getTour(g);
             assertHamiltonian(g, tour);
         }
     }
@@ -107,8 +135,7 @@ public class TwoOptHeuristicTSPTest
 
         g.setEdgeWeight(g.addEdge("5", "6"), 1d);
 
-        GraphPath<String, DefaultWeightedEdge> tour =
-            new TwoOptHeuristicTSP<String, DefaultWeightedEdge>().getTour(g);
+        GraphPath<String, DefaultWeightedEdge> tour = getTour(g);
         assertHamiltonian(g, tour);
 
         double mstWeight = new KruskalMinimumSpanningTree<>(g).getSpanningTree().getWeight();
@@ -119,8 +146,7 @@ public class TwoOptHeuristicTSPTest
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidInstanceDirected()
     {
-        new TwoOptHeuristicTSP<String, DefaultEdge>()
-            .getTour(new SimpleDirectedGraph<>(DefaultEdge.class));
+        getTour(new SimpleDirectedGraph<>(DefaultEdge.class));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -134,7 +160,7 @@ public class TwoOptHeuristicTSPTest
         g.setEdgeWeight(g.addEdge("A", "B"), 20d);
         g.setEdgeWeight(g.addEdge("A", "C"), 42d);
 
-        new TwoOptHeuristicTSP<String, DefaultWeightedEdge>().getTour(g);
+        getTour(g);
     }
 
 }

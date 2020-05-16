@@ -20,7 +20,6 @@ package org.jgrapht.alg.tour;
 import org.apache.commons.math3.geometry.euclidean.twod.*;
 import org.jgrapht.*;
 import org.jgrapht.alg.interfaces.*;
-import org.jgrapht.generate.*;
 import org.jgrapht.graph.*;
 import org.junit.*;
 
@@ -28,9 +27,9 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-import static java.util.stream.Collectors.toList;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
+import static org.jgrapht.alg.tour.HamiltonianCycleAlgorithmTests.*;
 
 /**
  * Tests for {@link NearestNeighborHeuristicTSP}.
@@ -67,37 +66,23 @@ public class NearestNeighborHeuristicTSPTest
         loc.add(new Vector2D(182, 449));
         locations = Collections.unmodifiableList(loc);
 
-        // build complete graph
-        Graph<Vector2D, DefaultWeightedEdge> g =
-            new SimpleWeightedGraph<>(loc.iterator()::next, DefaultWeightedEdge::new);
-
-        new CompleteGraphGenerator<Vector2D, DefaultWeightedEdge>(loc.size()).generateGraph(g);
-
-        // compute edge weights
-        for (DefaultWeightedEdge edge : g.edgeSet()) {
-            Vector2D source = g.getEdgeSource(edge);
-            Vector2D target = g.getEdgeTarget(edge);
-            double weight = source.distance(target);
-            g.setEdgeWeight(edge, weight);
-        }
-
-        graph = new AsUnmodifiableGraph<>(g);
+        graph = buidCompleteDistancesGraph(loc, (v1, v2) -> v1.distance(v2));
 
         // build expected tours:
         // For each of the above specified locations the distances to each other location are
         // different. Therefore for a given start-vertex the resulting tour computed according to
         // the NearestNeighbour heuristic is unambiguous.
         List<GraphPath<Vector2D, DefaultWeightedEdge>> tours = new ArrayList<>();
-        tours.add(buildTourPath(new int[] { 0, 1, 5, 8, 4, 7, 3, 6, 2, 9 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 1, 0, 2, 9, 7, 3, 6, 4, 8, 5 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 2, 9, 1, 0, 5, 8, 4, 7, 3, 6 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 3, 7, 6, 2, 9, 1, 0, 5, 8, 4 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 4, 8, 5, 1, 0, 2, 9, 7, 3, 6 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 5, 8, 4, 7, 3, 6, 2, 9, 1, 0 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 6, 3, 7, 2, 9, 1, 0, 5, 8, 4 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 7, 3, 6, 2, 9, 1, 0, 5, 8, 4 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 8, 5, 1, 0, 2, 9, 7, 3, 6, 4 }, graph, loc));
-        tours.add(buildTourPath(new int[] { 9, 2, 1, 0, 5, 8, 4, 7, 3, 6 }, graph, loc));
+        tours.add(vertexNumbersToTour(new int[] { 0, 1, 5, 8, 4, 7, 3, 6, 2, 9 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 1, 0, 2, 9, 7, 3, 6, 4, 8, 5 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 2, 9, 1, 0, 5, 8, 4, 7, 3, 6 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 3, 7, 6, 2, 9, 1, 0, 5, 8, 4 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 4, 8, 5, 1, 0, 2, 9, 7, 3, 6 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 5, 8, 4, 7, 3, 6, 2, 9, 1, 0 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 6, 3, 7, 2, 9, 1, 0, 5, 8, 4 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 7, 3, 6, 2, 9, 1, 0, 5, 8, 4 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 8, 5, 1, 0, 2, 9, 7, 3, 6, 4 }, loc, graph));
+        tours.add(vertexNumbersToTour(new int[] { 9, 2, 1, 0, 5, 8, 4, 7, 3, 6 }, loc, graph));
         expectedTours = Collections.unmodifiableList(tours);
     }
 
@@ -172,29 +157,5 @@ public class NearestNeighborHeuristicTSPTest
     private static <V, E> void assertStartVertex(GraphPath<V, E> tour, V expectedStartVertex)
     {
         assertThat(tour.getStartVertex(), is(sameInstance(expectedStartVertex)));
-    }
-
-    private static <V, E> GraphPath<V, E> buildTourPath(
-        int[] tourVertexIndices, Graph<V, E> graph, List<V> vertexList)
-    {
-        List<V> tour = Arrays.stream(tourVertexIndices).mapToObj(vertexList::get).collect(toList());
-        tour.add(tour.get(0)); // close path
-
-        double weight = 0;
-        for (int i = 1; i < tourVertexIndices.length; i++) {
-            E edge = graph.getEdge(tour.get(i - 1), tour.get(i));
-            weight += graph.getEdgeWeight(edge);
-        }
-        return new GraphWalk<>(graph, tour, weight);
-    }
-
-    private static long stringBytesAsLong(String str)
-    {
-        int length = str.length(); // if longer than 8, bytes are lost
-        long l = 0;
-        for (int i = 0; i < length; i++) {
-            l += ((long) str.charAt(length - 1 - i)) << (8 * i);
-        }
-        return l;
     }
 }
