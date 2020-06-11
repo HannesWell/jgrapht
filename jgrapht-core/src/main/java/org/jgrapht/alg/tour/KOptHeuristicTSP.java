@@ -22,6 +22,7 @@ import org.jgrapht.alg.interfaces.*;
 import org.jgrapht.util.*;
 
 import java.util.*;
+import java.util.function.*;
 
 //FIXME: complete doc. See TwoOpt. Maybe find another paper.
 /**
@@ -179,6 +180,20 @@ public class KOptHeuristicTSP<V, E>
     // FIXME: double check every thing !!!
     // print all indices
 
+    private Consumer<int[]> stepApplicationCallback = null;
+
+    public void setStepApplicationCallback(Consumer<int[]> stepApplicationCallback)
+    {
+        this.stepApplicationCallback = stepApplicationCallback;
+    }
+
+    private void showTour(int[] tour) // TODO: better name
+    {
+        if (stepApplicationCallback != null) {
+            stepApplicationCallback.accept(tour);
+        }
+    }
+
     @Override
     protected int[] improve(int[] tour)
     {
@@ -193,6 +208,8 @@ public class KOptHeuristicTSP<V, E>
         final int[] segmentBound2vertex = new int[k2];
 
         int[] newTour = new int[n + 1];
+
+        showTour(tour);
 
         while (true) {
             double minChange = -minCostImprovement;
@@ -230,6 +247,8 @@ public class KOptHeuristicTSP<V, E>
             int[] tmp = newTour; // swap tour and newTour reference
             newTour = tour;
             tour = tmp;
+
+            showTour(tour);
         }
     }
 
