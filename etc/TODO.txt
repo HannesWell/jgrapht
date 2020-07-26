@@ -1,0 +1,10 @@
+JGraphT setup:
+- clone git and setup the repo
+	- remote origin and upstream? which is which?
+	- github use name and email. Like in my repo
+- maven module import
+- preferences:
+	- formatter (try to get it from XML file)
+	- import grouping 0? 
+	- And order of imports
+	
