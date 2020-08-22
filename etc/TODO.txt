@@ -1,13 +1,59 @@
-JGraphT setup:
-- better visible logo (smaller, respectivly JGraphT bigger)
 - clone git and setup the repo
-	- remote origin and upstream? which is which? Think about using default jgrapht as remoteURI and the user's fork as pushURI
-	- github use name and email. Like in my repo
-- maven module import
-- preferences:
-	- formatter (try to get it from XML file)
-	- import grouping 0? 
-	- And order of imports
+
+
+TODO:
+- adjust redirection in Ini-Task to my repo, respectively change it back to jgrapht when working.
+- better visible logo (smaller, respectivly JGraphT bigger)
+
+- remote origin and upstream? which is which? Think about using default jgrapht as remoteURI and the user's fork as pushURI
+	Currently the git config regarding origin and upstream is done like recommended here:
+	https://docs.github.com/en/github/getting-started-with-github/fork-a-repo#keep-your-fork-synced
+	Also the fork is cloned and not the original repo.
+	But maybe it's better to clone the original repo and set the fork as second/and or push target repo?
+
+- formatter (try to get it from XML file)
+
+
+Questions:
+	Also set to zero the number of static imports needed for .*? Without static it is set to zero.
+
+
+JGraphT setup:
+What is done:
+- clone the git-repo and setup its config
+- import the maven projects
+- apply the formatter (needs to be synced with formatter file?)
+- Preferences: 
+	-Squashing of imports
+	- Import order
+	- Save actions are turned on by default.
+		- Format source code, all lines
+		- Organize imports
+		- Additional actions (takes the default of Eclipse)
 	
-What can we do? Other plug-ins? Save Actions, Code-Style?
-Turn on save actions by default?
+
+What has the user to do?
+- Get the eclipse installer and install a Eclipse product (for Java Developers is recommended) or make sure the Oomph plug-in is installed inside an existing Eclipse product (true for Products install by Oomph).
+- Either during installation of your eclipse product add the jGraphT product to be installed or after installation import the jGraphT product.
+	- Importing can be started via 
+		- the Package- or Project-Explorer, right click-> Import -> Oomph -> Projects from Catalog
+		- the toolbar-contribution of Oomph (the two arrows circly around themself), drop-down menu-> Import projects...
+	- Then add the jGrapht.setup file to the catalog by clicking in the upper right corner the green plus ("Add user projects") (maybe we can add jGraphT to the default catatlog?)
+	- Select under Github Projects, <User>, JGraphT and click next.
+	- At the variables page: 
+		- the most complex part:
+		- select intallation location and rules for workspace and git-repo location (I personally prefer separated directories for installations, workspaces and git repos but you can also nest them)
+		- set the access to the repo (git via SSH credentials must be known to eclipse. By default it knows the <user.dir>/.ssh folder, or https)
+		- Set your github author name (your displayed name), github author email (likly your displayed e-mail like 44067969+HannesWell@users.noreply.github.com) and your github id (the part in the URL of your profile).
+		- Click next and on the confirmation page click Finish.
+		- wait until its done and start coding.
+
+What can be done additionally?
+- the presented setup is a sugestion, many aspects can be configured
+- Add some more plug-ins? 
+- Specify more save Actions to improve Code-Style? 
+	E.g. Remove trailing whitespace, use blocks in if/whilefor/do, convert for loops to enhanced, use modifier final where possible, convert functional interface instances, 
+	remove unnecessary code (a lot of stuff can be done).
+- Add launch configs for maven build? requires (m2e. Maybe add a requirement for m2e?)
+
+
