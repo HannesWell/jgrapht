@@ -1,4 +1,5 @@
 JGraphT setup:
+- better visible logo (smaller, respectivly JGraphT bigger)
 - clone git and setup the repo
 	- remote origin and upstream? which is which? Think about using default jgrapht as remoteURI and the user's fork as pushURI
 	- github use name and email. Like in my repo
@@ -8,3 +9,5 @@ JGraphT setup:
 	- import grouping 0? 
 	- And order of imports
 	
+What can we do? Other plug-ins? Save Actions, Code-Style?
+Turn on save actions by default?
