@@ -55,5 +55,6 @@ What can be done additionally?
 	E.g. Remove trailing whitespace, use blocks in if/whilefor/do, convert for loops to enhanced, use modifier final where possible, convert functional interface instances, 
 	remove unnecessary code (a lot of stuff can be done).
 - Add launch configs for maven build? requires (m2e. Maybe add a requirement for m2e?)
+- Sonar-Lint or similar? Checkstyle?
 
 
