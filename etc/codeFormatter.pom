@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.jgrapht</groupId>
+    <artifactId>jgrapht-codeFormatter</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.1</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <eclipserun.repo>https://download.eclipse.org/releases/2020-03/</eclipserun.repo>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.tycho.extras</groupId>
+                <artifactId>tycho-eclipserun-plugin</artifactId>
+                <version>2.2.0</version>
+                <executions>
+                    <execution>
+                        <id>formatCode</id>
+                        <goals>
+                            <goal>eclipse-run</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                        <configuration>
+                            <applicationsArgs>
+                                <args>-application</args>
+                                <args>org.eclipse.jdt.core.JavaCodeFormatter</args>
+                                <args>-config</args>
+                                <args>${user.dir}/etc/org.eclipse.jdt.core.prefs</args>
+                                <args>${user.dir}</args>
+                            </applicationsArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <dependencies>
+                        <dependency>
+                            <artifactId>org.eclipse.jdt.core.formatterapp</artifactId>
+                            <type>eclipse-plugin</type>
+                        </dependency>
+                        <dependency>
+                            <artifactId>org.eclipse.platform.feature.group</artifactId>
+                            <type>p2-installable-unit</type>
+                        </dependency>
+                    </dependencies>
+                    <repositories>
+                        <repository>
+                            <id>eclipseRepo</id>
+                            <layout>p2</layout>
+                            <url>${eclipserun.repo}</url>
+                        </repository>
+                    </repositories>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
